@@ -792,16 +792,33 @@ programs:
       raw_syscalls:sys_exit: tracepoint__raw_syscalls__sys_exit
 
     code: |
+      #define FILTER_PID 
       BPF_HASH(counts, u64);
       BPF_HASH(exit_counts, u64);
       // Generates function tracepoint__raw_syscalls__sys_enter
       TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
+
+          u64 pid = bpf_get_current_pid_tgid();
+
+          #ifdef FILTER_PID
+              if (pid >> 32 != FILTER_PID)
+                  return 0;
+          #endif
+
           counts.increment((u64) args->id);
           return 0;
       }
 
       // Generates function tracepoint__raw_syscalls__sys_exit
       TRACEPOINT_PROBE(raw_syscalls, sys_exit) {
+
+        u64 pid = bpf_get_current_pid_tgid();
+
+          #ifdef FILTER_PID
+              if (pid >> 32 != FILTER_PID)
+                  return 0;
+          #endif
+
           exit_counts.increment((u64) args->id);
           return 0;
       }
