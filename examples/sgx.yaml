@@ -196,7 +196,7 @@ programs:
           pg_user.increment((u64) args->error_code);
           return 0;
       }
-
+    
   - name: syscalls
     metrics:
       counters:
@@ -926,3 +926,49 @@ programs:
           exit_counts.increment((u64) args->id);
           return 0;
       }
+
+  - name: perf_sw_events
+  # https://github.com/torvalds/linux/blob/master/include/uapi/linux/perf_event.h
+    metrics:
+      counters:
+        - name: context_switches_total
+          help: Total number of context switches by CPU
+          table: cs
+          labels:
+            - name: cpu
+              size: 4
+              decoders:
+                - name: uint
+        - name: page_faults_total
+          help: Total number of page faults by CPU
+          table: pf
+          labels:
+            - name: cpu
+              size: 4
+              decoders:
+                - name: uint
+    perf_events:
+      - type: 0x1 # SOFTWARE
+        name: 0x3 # PERF_COUNT_SW_CONTEXT_SWITCHES
+        target: on_ctx_switch
+        sample_frequency: 99
+      - type: 0x1 # SOFTWARE
+        name: 0x2 # PERF_COUNT_SW_PAGE_FAULTS
+        target: on_pg_faults
+        sample_frequency: 99
+    code: |
+      #include <linux/ptrace.h>
+      #include <uapi/linux/bpf_perf_event.h>
+      #define MAX_CPU 16
+
+      BPF_ARRAY(cs, u64, MAX_CPU);
+      BPF_ARRAY(pf, u64, MAX_CPU);
+      int on_ctx_switch(struct bpf_perf_event_data *ctx) {
+          cs.increment(bpf_get_smp_processor_id(), ctx->sample_period);
+          return 0;
+      }
+      int on_pg_faults(struct bpf_perf_event_data *ctx) {
+          pf.increment(bpf_get_smp_processor_id(), ctx->sample_period);
+          return 0;
+      }
+
