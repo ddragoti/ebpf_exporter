@@ -145,6 +145,13 @@ programs:
               size: 8
               decoders: 
                 - name: uint
+                - name: static_map
+                  static_map:
+                    # https://elixir.bootlin.com/linux/v4.5/source/arch/x86/mm/fault.c
+                    0: no_page_found
+                    1: protection_fault
+                    2: write_fault
+                    3: write_prot_fault
 
     tracepoints:
       exceptions:page_fault_kernel: tracepoint__exceptions__page_fault_kernel
@@ -169,6 +176,14 @@ programs:
               size: 8
               decoders: 
                 - name: uint
+                - name: static_map
+                  static_map:
+                    # https://elixir.bootlin.com/linux/v4.5/source/arch/x86/mm/fault.c
+                    4: no_page_found
+                    5: protection_fault
+                    6: write_fault
+                    7: write_prot_fault
+                    20: instr_fetch_fault
 
     tracepoints:
       exceptions:page_fault_user: tracepoint__exceptions__page_fault_user
