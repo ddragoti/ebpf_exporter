@@ -74,25 +74,65 @@ programs:
           return 0;
       }
 
-  # - name: sched_switches
-  #   metrics:
-  #     counters:
-  #       - name: context_switched_total
-  #         help: Context Switches
-  #         table: counts
-  #         labels:
-  #           - name: prev_state
-  #             size: 8
+  - name: sched_switches_from
+    metrics:
+      counters:
+        - name: context_switched_from_pid_total
+          help: Context Switches from PID
+          table: from_pid
+          labels:
+            - name: prev_pid
+              size: 8
+              decoders: 
+                - name: uint
 
-  #   tracepoints:
-  #     sched:sched_switch: tracepoint__sched__sched_switch
-  #   code: |
-  #     BPF_HASH(counts, u64);
-  #     // Generates function tracepoint__sched__sched_switch
-  #     TRACEPOINT_PROBE(sched, sched_switch) {
-  #         counts.increment((u64) args->prev_state);
-  #         return 0;
-  #     }
+    tracepoints:
+      sched:sched_switch: tracepoint__sched__sched_switch
+    code: |
+      #define FILTER_PID 7007
+      BPF_HASH(from_pid, u64);
+
+      // Generates function tracepoint__sched__sched_switch by checking prev_pid
+      TRACEPOINT_PROBE(sched, sched_switch) {
+
+          #ifdef FILTER_PID
+              if (args->prev_pid != FILTER_PID)
+                  return 0;
+          #endif
+
+          from_pid.increment((u64) args->prev_pid);
+          return 0;
+      }
+
+  - name: sched_switches_to
+    metrics:
+      counters:
+        - name: context_switched_to_pid_total
+          help: Context Switches to PID
+          table: to_pid
+          labels:
+            - name: next_pid
+              size: 8
+              decoders: 
+                - name: uint
+
+    tracepoints:
+      sched:sched_switch: tracepoint__sched__sched_switch
+    code: |
+      #define FILTER_PID 7007
+      BPF_HASH(to_pid, u64);
+
+      // Generates function tracepoint__sched__sched_switch by checking next_pid
+      TRACEPOINT_PROBE(sched, sched_switch) {
+
+          #ifdef FILTER_PID
+              if (args->next_pid != FILTER_PID)
+                  return 0;
+          #endif
+
+          to_pid.increment((u64) args->next_pid);
+          return 0;
+      }
 
   - name: syscalls
     metrics:
@@ -792,9 +832,10 @@ programs:
       raw_syscalls:sys_exit: tracepoint__raw_syscalls__sys_exit
 
     code: |
-      #define FILTER_PID 
+
       BPF_HASH(counts, u64);
       BPF_HASH(exit_counts, u64);
+
       // Generates function tracepoint__raw_syscalls__sys_enter
       TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
 
