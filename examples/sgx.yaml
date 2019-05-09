@@ -134,6 +134,54 @@ programs:
           return 0;
       }
 
+  - name: page_fault_kernel
+    metrics:
+      counters:
+        - name: page_fault_kernel_total
+          help: Page faults in kernel space divided by error code
+          table: pg_kernel
+          labels:
+            - name: error_code
+              size: 8
+              decoders: 
+                - name: uint
+
+    tracepoints:
+      exceptions:page_fault_kernel: tracepoint__exceptions__page_fault_kernel
+    code: |
+      BPF_HASH(pg_kernel, u64);
+
+      // Generates function tracepoint__exceptions__page_fault_kernel
+      TRACEPOINT_PROBE(exceptions, page_fault_kernel) {
+
+          pg_kernel.increment((u64) args->error_code);
+          return 0;
+      }
+
+  - name: page_fault_user
+    metrics:
+      counters:
+        - name: page_fault_user_total
+          help: Page faults in user space divided by error code
+          table: pg_user
+          labels:
+            - name: error_code
+              size: 8
+              decoders: 
+                - name: uint
+
+    tracepoints:
+      exceptions:page_fault_user: tracepoint__exceptions__page_fault_user
+    code: |
+      BPF_HASH(pg_user, u64);
+
+      // Generates function tracepoint__exceptions__page_fault_user
+      TRACEPOINT_PROBE(exceptions, page_fault_user) {
+
+          pg_user.increment((u64) args->error_code);
+          return 0;
+      }
+
   - name: syscalls
     metrics:
       counters:
