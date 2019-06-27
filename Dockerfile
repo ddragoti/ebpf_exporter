@@ -23,7 +23,6 @@ RUN apt-get install -y apt-transport-https && \
     apt-get install -y libbcc linux-headers-amd64
 
 COPY --from=builder /root/go/bin/ebpf_exporter /usr/bin/ebpf_exporter
-COPY examples /etc/ebpf_exporter/
 
 ENTRYPOINT [ "ebpf_exporter" ]
 CMD [ "--config.file=/etc/ebpf_exporter/sgx.yaml" ]
